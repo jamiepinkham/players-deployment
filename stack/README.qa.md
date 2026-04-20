@@ -119,13 +119,14 @@ QA has its own **separate database volumes**, so:
 
 ### Copy Production Data to QA
 
-```bash
-# 1. Dump production database
-docker exec players-db pg_dump -U postgres players_production > prod_dump.sql
+Use the manual sync script:
 
-# 2. Restore to QA database
-docker exec -i players-db-qa psql -U postgres players_production < prod_dump.sql
+```bash
+ssh ortiz@fenway
+~/players-deployment/scripts/sync-prod-to-qa.sh
 ```
+
+See `docs/MANUAL_QA_SYNC.md` for details.
 
 ## QA Workflow
 
