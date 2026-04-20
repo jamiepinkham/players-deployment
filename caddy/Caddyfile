@@ -1,0 +1,22 @@
+# Caddy Configuration for Fenway
+# Players app and Ghost blog reverse proxy
+
+# Players Fantasy Baseball Application
+billymartinplayersleague.com {
+    reverse_proxy players-players-1:3000
+
+    # Enable compression
+    encode gzip
+
+    # Logging
+    log {
+        output file /var/log/caddy/players.log
+    }
+}
+
+www.billymartinplayersleague.com {
+    redir https://billymartinplayersleague.com{uri} permanent
+}
+
+# Note: Caddy container must be on the 'web' network
+# to communicate with players-players-1 and ghost containers

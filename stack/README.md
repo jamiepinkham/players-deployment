@@ -51,21 +51,22 @@ docker-compose up -d
 
 ## Environment Setup
 
-Before deploying, ensure env files exist with actual values:
+Before deploying, create the environment file:
 
 ```bash
-cd ../env
-cp shared.env.template shared.env
-cp mailgun.env.template mailgun.env
-cp players.env.template players.env
-cp ghost.env.template ghost.env
+cd stack
+cp .env.template .env
 
-# Edit each file with actual credentials
-vim shared.env
-vim mailgun.env
-vim players.env
-vim ghost.env
+# Edit with actual credentials
+vim .env
 ```
+
+Required variables:
+- `POSTGRES_PASSWORD` - PostgreSQL password
+- `SECRET_KEY_BASE` - Rails secret (generate with `rails secret`)
+- `MAILGUN_SMTP_USERNAME` - Mailgun SMTP username
+- `MAILGUN_SMTP_PASSWORD` - Mailgun API key
+- `GHOST_DB_PASSWORD` - MySQL password for Ghost
 
 ## Volumes
 
