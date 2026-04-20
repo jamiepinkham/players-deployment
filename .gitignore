@@ -1,0 +1,25 @@
+# Environment files with actual secrets
+*.env
+!*.env.template
+
+# Extracted configuration backups
+fenway-config-*/
+
+# System files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/

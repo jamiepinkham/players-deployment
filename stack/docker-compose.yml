@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # Players Rails Application
+  players-web:
+    image: players-web:latest
+    container_name: players-web
+    env_file:
+      - ../env/shared.env
+      - ../env/mailgun.env
+      - ../env/players.env
+    depends_on:
+      - players-db
+    ports:
+      - "3000:3000"
+    volumes:
+      - players-storage:/rails/storage
+      - players-uploads:/rails/public/uploads
+    networks:
+      - fenway
+    restart: unless-stopped
+
+  # Players Database
+  players-db:
+    image: postgres:15
+    container_name: players-db
+    env_file:
+      - ../env/shared.env
+    volumes:
+      - players-db-data:/var/lib/postgresql/data
+    networks:
+      - fenway
+    restart: unless-stopped
+
+  # Players Scheduler (Background Jobs)
+  players-scheduler:
+    image: players-web:latest
+    container_name: players-scheduler
+    env_file:
+      - ../env/shared.env
+      - ../env/mailgun.env
+      - ../env/players.env
+    depends_on:
+      - players-db
+    command: bundle exec whenever --update-crontab && crond -f
+    volumes:
+      - players-storage:/rails/storage
+    networks:
+      - fenway
+    restart: unless-stopped
+
+  # Ghost Blog Database
+  ghost-db:
+    image: postgres:15
+    container_name: ghost-db
+    environment:
+      POSTGRES_DB: ghost_production
+      POSTGRES_USER: ghost
+      POSTGRES_PASSWORD: ${GHOST_DB_PASSWORD}
+    volumes:
+      - ghost-db-data:/var/lib/postgresql/data
+    networks:
+      - fenway
+    restart: unless-stopped
+
+  # Ghost Blog
+  ghost:
+    image: ghost:5
+    container_name: ghost
+    env_file:
+      - ../env/mailgun.env
+      - ../env/ghost.env
+    depends_on:
+      - ghost-db
+    ports:
+      - "2368:2368"
+    volumes:
+      - ghost-content:/var/lib/ghost/content
+    networks:
+      - fenway
+    restart: unless-stopped
+
+networks:
+  fenway:
+    driver: bridge
+
+volumes:
+  players-db-data:
+  players-storage:
+  players-uploads:
+  ghost-db-data:
+  ghost-content:
