@@ -24,9 +24,11 @@ services:
       - RAILS_ENV=production
       - RAILS_LOG_TO_STDOUT=true
       - RAILS_SERVE_STATIC_FILES=true
+      - REDIS_URL=redis://players-redis:6379/0
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
     depends_on:
       - players-db
+      - players-redis
     ports:
       - "3000:3000"
     networks:
@@ -78,10 +80,57 @@ services:
       - RAILS_ENV=production
       - RAILS_LOG_TO_STDOUT=true
       - RAILS_SERVE_STATIC_FILES=true
+      - REDIS_URL=redis://players-redis:6379/0
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
     depends_on:
       - players-db
+      - players-redis
     command: supercronic /app/config/crontab
+    networks:
+      - default
+    restart: unless-stopped
+
+  # Redis
+  players-redis:
+    image: redis:7-alpine
+    container_name: players-redis
+    networks:
+      - default
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Sidekiq Workers
+  players-sidekiq:
+    image: ghcr.io/jamiepinkham/players:main
+    container_name: players-sidekiq
+    environment:
+      - APP_HOST=
+      - ASSET_HOST=
+      - DATABASE_HOST=players-db
+      - DATABASE_NAME=players_production
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-}
+      - DISABLE_FORCE_SSL=true
+      - DISABLE_HOST_CHECK=true
+      - MAILER_FROM=no-reply@billymartinplayersleague.com
+      - MAILGUN_SMTP_ADDRESS=smtp.mailgun.org
+      - MAILGUN_SMTP_AUTHENTICATION=plain
+      - MAILGUN_SMTP_DOMAIN=billymartinplayersleague.com
+      - MAILGUN_SMTP_PORT=587
+      - MAILGUN_SMTP_USERNAME=${MAILGUN_SMTP_USERNAME}
+      - MAILGUN_SMTP_PASSWORD=${MAILGUN_SMTP_PASSWORD}
+      - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
+      - REDIS_URL=redis://players-redis:6379/0
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+    depends_on:
+      - players-db
+      - players-redis
+    command: bundle exec sidekiq
     networks:
       - default
     restart: unless-stopped
