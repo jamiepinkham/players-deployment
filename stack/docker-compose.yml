@@ -11,7 +11,7 @@ services:
       - DATABASE_HOST=players-db-1
       - DATABASE_NAME=players_production
       - DATABASE_USER=postgres
-      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-}
       - DISABLE_FORCE_SSL=true
       - DISABLE_HOST_CHECK=true
       - MAILER_FROM=no-reply@billymartinplayersleague.com
@@ -41,7 +41,9 @@ services:
     environment:
       - POSTGRES_DB=players_production
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      # POSTGRES_PASSWORD is optional - using trust auth like current setup
+      # Set POSTGRES_PASSWORD env var to enable password authentication
     volumes:
       - players-db-data:/var/lib/postgresql/data
     networks:
@@ -63,7 +65,7 @@ services:
       - DATABASE_HOST=players-db-1
       - DATABASE_NAME=players_production
       - DATABASE_USER=postgres
-      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-}
       - DISABLE_FORCE_SSL=true
       - DISABLE_HOST_CHECK=true
       - MAILER_FROM=no-reply@billymartinplayersleague.com
