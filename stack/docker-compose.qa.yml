@@ -9,7 +9,7 @@ services:
       - APP_HOST=
       - ASSET_HOST=
       - DATABASE_HOST=players-db-qa
-      - DATABASE_NAME=players_production
+      - DATABASE_NAME=players_qa
       - DATABASE_USER=postgres
       - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-}
       - DISABLE_FORCE_SSL=true
@@ -39,7 +39,7 @@ services:
     image: postgres:16
     container_name: players-db-qa
     environment:
-      - POSTGRES_DB=players_production
+      - POSTGRES_DB=players_qa
       - POSTGRES_USER=postgres
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
@@ -61,7 +61,7 @@ services:
       - APP_HOST=
       - ASSET_HOST=
       - DATABASE_HOST=players-db-qa
-      - DATABASE_NAME=players_production
+      - DATABASE_NAME=players_qa
       - DATABASE_USER=postgres
       - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-}
       - DISABLE_FORCE_SSL=true
