@@ -1,22 +1,32 @@
-# Caddy Configuration for Fenway
-# Players app and Ghost blog reverse proxy
+# Caddyfile for Cloudflare Tunnel
+# Explicitly set proxy headers for Ghost
 
-# Players Fantasy Baseball Application
-billymartinplayersleague.com {
-    reverse_proxy players-web:3000
-
-    # Enable compression
-    encode gzip
-
-    # Logging
-    log {
-        output file /var/log/caddy/players.log
+# Rails app (Production)
+http://players.billymartinplayersleague.com {
+    reverse_proxy players-web:3000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto https
+        header_up Host {host}
     }
 }
 
-www.billymartinplayersleague.com {
-    redir https://billymartinplayersleague.com{uri} permanent
+# Rails app (QA)
+http://qa.billymartinplayersleague.com {
+    reverse_proxy players-web-qa:3000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto https
+        header_up Host {host}
+    }
 }
 
-# Note: Caddy container must be on the 'web' network
-# to communicate with players-players-1 and ghost containers
+# Ghost blog
+http://billymartinplayersleague.com {
+    reverse_proxy ghost:2368 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto https
+        header_up Host {host}
+    }
+}
