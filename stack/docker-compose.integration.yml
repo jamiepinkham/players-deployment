@@ -24,9 +24,11 @@ services:
       - RAILS_ENV=development
       - RAILS_LOG_TO_STDOUT=true
       - RAILS_SERVE_STATIC_FILES=true
+      - REDIS_URL=redis://players-redis-integration:6379/0
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
     depends_on:
       - players-db-integration
+      - players-redis-integration
     ports:
       - "3001:3000"  # Integration on different port
     networks:
@@ -76,10 +78,57 @@ services:
       - RAILS_ENV=development
       - RAILS_LOG_TO_STDOUT=true
       - RAILS_SERVE_STATIC_FILES=true
+      - REDIS_URL=redis://players-redis-integration:6379/0
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
     depends_on:
       - players-db-integration
+      - players-redis-integration
     command: supercronic /app/config/crontab
+    networks:
+      - integration
+    restart: unless-stopped
+
+  # Redis (Integration)
+  players-redis-integration:
+    image: redis:7-alpine
+    container_name: players-redis-integration
+    networks:
+      - integration
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Sidekiq Workers (Integration)
+  players-sidekiq-integration:
+    image: ghcr.io/jamiepinkham/players:${INTEGRATION_REF:-main}
+    container_name: players-sidekiq-integration
+    environment:
+      - APP_HOST=
+      - ASSET_HOST=
+      - DATABASE_HOST=players-db-integration
+      - DATABASE_NAME=players_integration
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-}
+      - DISABLE_FORCE_SSL=true
+      - DISABLE_HOST_CHECK=true
+      - MAILER_FROM=no-reply@billymartinplayersleague.com
+      - MAILGUN_SMTP_ADDRESS=smtp.mailgun.org
+      - MAILGUN_SMTP_AUTHENTICATION=plain
+      - MAILGUN_SMTP_DOMAIN=billymartinplayersleague.com
+      - MAILGUN_SMTP_PORT=587
+      - MAILGUN_SMTP_USERNAME=${MAILGUN_SMTP_USERNAME}
+      - MAILGUN_SMTP_PASSWORD=${MAILGUN_SMTP_PASSWORD}
+      - RAILS_ENV=development
+      - RAILS_LOG_TO_STDOUT=true
+      - REDIS_URL=redis://players-redis-integration:6379/0
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+    depends_on:
+      - players-db-integration
+      - players-redis-integration
+    command: bundle exec sidekiq
     networks:
       - integration
     restart: unless-stopped
