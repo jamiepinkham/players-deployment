@@ -3,7 +3,7 @@
 
 # Players Fantasy Baseball Application
 billymartinplayersleague.com {
-    reverse_proxy players-players-1:3000
+    reverse_proxy players-web:3000
 
     # Enable compression
     encode gzip

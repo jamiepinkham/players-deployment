@@ -4,11 +4,11 @@ services:
   # Players Rails Application
   players-web:
     image: ghcr.io/jamiepinkham/players:main
-    container_name: players-players-1
+    container_name: players-web
     environment:
       - APP_HOST=
       - ASSET_HOST=
-      - DATABASE_HOST=players-db-1
+      - DATABASE_HOST=players-db
       - DATABASE_NAME=players_production
       - DATABASE_USER=postgres
       - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-}
@@ -37,7 +37,7 @@ services:
   # Players Database
   players-db:
     image: postgres:16
-    container_name: players-db-1
+    container_name: players-db
     environment:
       - POSTGRES_DB=players_production
       - POSTGRES_USER=postgres
@@ -58,11 +58,11 @@ services:
   # Players Scheduler (Background Jobs)
   players-scheduler:
     image: ghcr.io/jamiepinkham/players:main
-    container_name: players-scheduler-1
+    container_name: players-scheduler
     environment:
       - APP_HOST=
       - ASSET_HOST=
-      - DATABASE_HOST=players-db-1
+      - DATABASE_HOST=players-db
       - DATABASE_NAME=players_production
       - DATABASE_USER=postgres
       - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-}
