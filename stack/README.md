@@ -28,7 +28,7 @@ All services run on a single Docker network (`fenway`) and share centralized cre
 
 1. Log into Portainer at http://fenway:9000
 2. Go to Stacks → Add Stack
-3. Name: `fenway-apps`
+3. Name: `bmpl-apps`
 4. Build method: Repository (or Upload)
 5. Repository URL: `https://github.com/jamiepinkham/players-deployment`
 6. Repository reference: `main`

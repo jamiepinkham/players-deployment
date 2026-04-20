@@ -20,7 +20,7 @@ The players-deployment repository is now complete and pushed to GitHub! Here's w
 
 2. **Create Stack**:
    - Go to Stacks → Add Stack
-   - Name: `fenway-apps`
+   - Name: `bmpl-apps`
    - Build method: **Repository**
    - Repository URL: `https://github.com/jamiepinkham/players-deployment`
    - Repository reference: `main`

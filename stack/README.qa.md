@@ -17,7 +17,7 @@ This is a separate QA environment that runs alongside production on fenway.
 
 1. Open Portainer: http://fenway:9000
 2. Stacks → Add Stack
-3. Name: `fenway-apps-qa`
+3. Name: `bmpl-apps-qa`
 4. Build method: **Repository**
 5. Repository URL: `https://github.com/jamiepinkham/players-deployment`
 6. Repository reference: `main`
@@ -29,7 +29,7 @@ This is a separate QA environment that runs alongside production on fenway.
 
 ### Option 1: Update in Portainer UI
 
-1. Go to `fenway-apps-qa` stack
+1. Go to `bmpl-apps-qa` stack
 2. Click **Editor**
 3. Change image tags:
    ```yaml
@@ -110,7 +110,7 @@ docker restart players-scheduler-qa
 ```
 
 ### Stop QA (to save resources)
-In Portainer: fenway-apps-qa → Stop
+In Portainer: bmpl-apps-qa → Stop
 
 Or via CLI:
 ```bash
@@ -119,7 +119,7 @@ docker-compose -f docker-compose.qa.yml down
 ```
 
 ### Start QA
-In Portainer: fenway-apps-qa → Start
+In Portainer: bmpl-apps-qa → Start
 
 Or via CLI:
 ```bash

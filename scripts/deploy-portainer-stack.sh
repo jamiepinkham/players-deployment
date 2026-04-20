@@ -4,16 +4,16 @@
 # Prerequisites:
 # - Portainer running on fenway at port 9000
 # - Environment variables file with Portainer credentials
-# - Stack name: fenway-apps
+# - Stack name: bmpl-apps
 
 set -e
 
 PORTAINER_URL="${PORTAINER_URL:-http://fenway:9000}"
-STACK_NAME="fenway-apps"
+STACK_NAME="bmpl-apps"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-echo "🚀 Deploying fenway-apps stack to Portainer"
+echo "🚀 Deploying bmpl-apps stack to Portainer"
 echo ""
 
 # Check if env files exist
@@ -36,7 +36,7 @@ echo ""
 echo "1. Deploy via Portainer UI (recommended)"
 echo "   - Open http://fenway:9000"
 echo "   - Stacks → Add Stack"
-echo "   - Name: fenway-apps"
+echo "   - Name: bmpl-apps"
 echo "   - Repository: https://github.com/jamiepinkham/players-deployment"
 echo "   - Compose path: stack/docker-compose.yml"
 echo ""
@@ -60,7 +60,7 @@ case $method in
     echo "Follow these steps in Portainer:"
     echo "  1. Click 'Stacks' in the left sidebar"
     echo "  2. Click 'Add stack'"
-    echo "  3. Name: fenway-apps"
+    echo "  3. Name: bmpl-apps"
     echo "  4. Build method: Repository"
     echo "  5. Repository URL: https://github.com/jamiepinkham/players-deployment"
     echo "  6. Repository reference: main"

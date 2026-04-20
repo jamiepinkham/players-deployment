@@ -21,7 +21,7 @@ This guide covers replacing the current running setup on fenway with the new uni
 **New Setup:**
 - Containers: `players-web`, `players-db`, `players-scheduler`, `ghost`, `ghost-db`
 - Networks: `players_default`, `web`
-- Managed via: Single Portainer stack (`fenway-apps`)
+- Managed via: Single Portainer stack (`bmpl-apps`)
 - Config: Version controlled in GitHub
 
 ## Migration Steps
@@ -89,7 +89,7 @@ docker ps
 
 2. **Create New Stack**:
    - Click **Stacks** → **Add Stack**
-   - Name: `fenway-apps`
+   - Name: `bmpl-apps`
 
 3. **Configure Repository**:
    - Build method: **Repository**
@@ -145,9 +145,9 @@ If you want to keep the existing data volumes without dumping/restoring:
 docker stop players-db ghost-db
 
 # Remove empty new volumes
-docker volume rm fenway-apps_players-db-data
-docker volume rm fenway-apps_ghost-db-data
-docker volume rm fenway-apps_ghost-content
+docker volume rm bmpl-apps_players-db-data
+docker volume rm bmpl-apps_ghost-db-data
+docker volume rm bmpl-apps_ghost-content
 
 # Find old volume names
 docker volume ls | grep players
@@ -335,6 +335,6 @@ Now that your deployment is in git:
 
 - **Update players app**: Change image tag in Portainer → Pull and redeploy
 - **Update ghost**: Change ghost image tag → Redeploy
-- **Deploy to QA**: Create `fenway-apps-qa` stack using `docker-compose.qa.yml`
+- **Deploy to QA**: Create `bmpl-apps-qa` stack using `docker-compose.qa.yml`
 - **Rollback**: Change image tags to previous version → Redeploy
 - **Config changes**: Update repo → git pull on fenway (if using docker-compose) or update in Portainer
