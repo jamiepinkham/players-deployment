@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Players Rails Application (QA)
   players-web-qa:
-    image: ghcr.io/jamiepinkham/players:jp-consolidated-fa-improvements  # PR #70
+    image: ghcr.io/jamiepinkham/players:${PLAYERS_IMAGE_TAG:-main}
     container_name: players-web-qa
     environment:
       - APP_HOST=
@@ -55,7 +55,7 @@ services:
 
   # Players Scheduler (QA)
   players-scheduler-qa:
-    image: ghcr.io/jamiepinkham/players:jp-consolidated-fa-improvements  # PR #70
+    image: ghcr.io/jamiepinkham/players:${PLAYERS_IMAGE_TAG:-main}
     container_name: players-scheduler-qa
     environment:
       - APP_HOST=
