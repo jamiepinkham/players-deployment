@@ -82,11 +82,8 @@ services:
     depends_on:
       - players-db
     command: bundle exec whenever --update-crontab && cron -f
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock  # Access to Docker for QA sync
     networks:
       - default
-      - qa  # Access to QA network for database sync
     restart: unless-stopped
 
   # Ghost Blog Database
