@@ -84,49 +84,6 @@ services:
       - qa
     restart: unless-stopped
 
-  # Ghost Blog Database (QA)
-  ghost-db-qa:
-    image: mysql:8.0
-    container_name: ghost-db-qa
-    environment:
-      - MYSQL_ROOT_PASSWORD=${GHOST_DB_PASSWORD}
-      - MYSQL_DATABASE=ghost
-      - MYSQL_USER=ghost
-      - MYSQL_PASSWORD=${GHOST_DB_PASSWORD}
-    volumes:
-      - ghost-db-data-qa:/var/lib/mysql
-    networks:
-      - qa
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Ghost Blog (QA)
-  ghost-qa:
-    image: ghost:latest
-    container_name: ghost-qa
-    environment:
-      - url=https://qa.billymartinplayersleague.com
-      - NODE_ENV=production
-      - database__client=mysql
-      - database__connection__host=ghost-db-qa
-      - database__connection__user=ghost
-      - database__connection__password=${GHOST_DB_PASSWORD}
-      - database__connection__database=ghost
-    depends_on:
-      - ghost-db-qa
-    ports:
-      - "2369:2368"  # QA on different port
-    volumes:
-      - ghost-content-qa:/var/lib/ghost/content
-    networks:
-      - qa
-      - web
-    restart: unless-stopped
-
 networks:
   qa:
     name: players_qa
@@ -136,5 +93,3 @@ networks:
 
 volumes:
   players-db-data-qa:
-  ghost-db-data-qa:
-  ghost-content-qa:

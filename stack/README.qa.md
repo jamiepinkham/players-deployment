@@ -1,13 +1,14 @@
 # QA Environment Stack
 
-This is a separate QA environment that runs alongside production on fenway.
+This is a separate QA environment for the **Players app only** (Ghost doesn't need QA). Runs alongside production on fenway.
 
 ## Differences from Production
 
 | Aspect | Production | QA |
 |--------|-----------|-----|
+| Services | Players + Ghost | Players only |
 | Container names | `players-web`, etc. | `players-web-qa`, etc. |
-| Ports | 3000, 2368 | 3001, 2369 |
+| Ports | 3000 | 3001 |
 | Database volumes | `players-db-data` | `players-db-data-qa` |
 | Network | `players_default` | `players_qa` |
 | Rails environment | `production` | `development` (enables GraphiQL) |
@@ -55,7 +56,12 @@ query {
 5. Repository URL: `https://github.com/jamiepinkham/players-deployment`
 6. Repository reference: `main`
 7. Compose path: `stack/docker-compose.qa.yml`
-8. Add same environment variables as production
+8. Add environment variables (only Players app vars needed):
+   - `POSTGRES_PASSWORD` (leave empty)
+   - `SECRET_KEY_BASE`
+   - `MAILGUN_SMTP_USERNAME`
+   - `MAILGUN_SMTP_PASSWORD`
+   - ~~`GHOST_DB_PASSWORD`~~ (not needed - no Ghost in QA)
 9. Deploy
 
 ## Testing Feature Branches
@@ -92,7 +98,6 @@ git push -u origin qa-test-new-features
 ### Direct Access (via SSH tunnel)
 - Players: http://fenway:3001
 - GraphiQL: http://fenway:3001/graphiql
-- Ghost: http://fenway:2369
 
 ### Via Caddy (add to Caddyfile)
 ```caddy
@@ -137,7 +142,7 @@ docker exec -i players-db-qa psql -U postgres players_production < prod_dump.sql
 ### View logs
 ```bash
 docker logs -f players-web-qa
-docker logs -f ghost-qa
+docker logs -f players-scheduler-qa
 ```
 
 ### Restart QA services
