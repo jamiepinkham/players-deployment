@@ -11,9 +11,9 @@ http://players.billymartinplayersleague.com {
     }
 }
 
-# Rails app (QA)
-http://players-qa.billymartinplayersleague.com {
-    reverse_proxy players-web-qa:3000 {
+# Rails app (Integration)
+http://players-integration.billymartinplayersleague.com {
+    reverse_proxy players-web-integration:3000 {
         header_up X-Real-IP {remote_host}
         header_up X-Forwarded-For {remote_host}
         header_up X-Forwarded-Proto https

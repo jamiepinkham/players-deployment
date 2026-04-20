@@ -1,15 +1,15 @@
 version: '3.8'
 
 services:
-  # Players Rails Application (QA)
-  players-web-qa:
-    image: ghcr.io/jamiepinkham/players:sha-${QA_SHA:-main}
-    container_name: players-web-qa
+  # Players Rails Application (Integration)
+  players-web-integration:
+    image: ghcr.io/jamiepinkham/players:${INTEGRATION_REF:-main}
+    container_name: players-web-integration
     environment:
       - APP_HOST=
       - ASSET_HOST=
-      - DATABASE_HOST=players-db-qa
-      - DATABASE_NAME=players_qa
+      - DATABASE_HOST=players-db-integration
+      - DATABASE_NAME=players_integration
       - DATABASE_USER=postgres
       - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-}
       - DISABLE_FORCE_SSL=true
@@ -26,26 +26,26 @@ services:
       - RAILS_SERVE_STATIC_FILES=true
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
     depends_on:
-      - players-db-qa
+      - players-db-integration
     ports:
-      - "3001:3000"  # QA on different port
+      - "3001:3000"  # Integration on different port
     networks:
-      - qa
+      - integration
       - web
     restart: unless-stopped
 
-  # Players Database (QA)
-  players-db-qa:
+  # Players Database (Integration)
+  players-db-integration:
     image: postgres:16
-    container_name: players-db-qa
+    container_name: players-db-integration
     environment:
-      - POSTGRES_DB=players_qa
+      - POSTGRES_DB=players_integration
       - POSTGRES_USER=postgres
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
-      - players-db-data-qa:/var/lib/postgresql/data
+      - players-db-data-integration:/var/lib/postgresql/data
     networks:
-      - qa
+      - integration
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -53,15 +53,15 @@ services:
       timeout: 5s
       retries: 5
 
-  # Players Scheduler (QA)
-  players-scheduler-qa:
-    image: ghcr.io/jamiepinkham/players:sha-${QA_SHA:-main}
-    container_name: players-scheduler-qa
+  # Players Scheduler (Integration)
+  players-scheduler-integration:
+    image: ghcr.io/jamiepinkham/players:${INTEGRATION_REF:-main}
+    container_name: players-scheduler-integration
     environment:
       - APP_HOST=
       - ASSET_HOST=
-      - DATABASE_HOST=players-db-qa
-      - DATABASE_NAME=players_qa
+      - DATABASE_HOST=players-db-integration
+      - DATABASE_NAME=players_integration
       - DATABASE_USER=postgres
       - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-}
       - DISABLE_FORCE_SSL=true
@@ -78,18 +78,18 @@ services:
       - RAILS_SERVE_STATIC_FILES=true
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
     depends_on:
-      - players-db-qa
+      - players-db-integration
     command: supercronic /app/config/crontab
     networks:
-      - qa
+      - integration
     restart: unless-stopped
 
 networks:
-  qa:
-    name: players_qa
+  integration:
+    name: players_integration
   web:
     external: true
     name: web
 
 volumes:
-  players-db-data-qa:
+  players-db-data-integration:
