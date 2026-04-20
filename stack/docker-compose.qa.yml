@@ -1,0 +1,140 @@
+version: '3.8'
+
+services:
+  # Players Rails Application (QA)
+  players-web-qa:
+    image: ghcr.io/jamiepinkham/players:main  # Change this to test branches
+    container_name: players-web-qa
+    environment:
+      - APP_HOST=
+      - ASSET_HOST=
+      - DATABASE_HOST=players-db-qa
+      - DATABASE_NAME=players_production
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-}
+      - DISABLE_FORCE_SSL=true
+      - DISABLE_HOST_CHECK=true
+      - MAILER_FROM=no-reply@billymartinplayersleague.com
+      - MAILGUN_SMTP_ADDRESS=smtp.mailgun.org
+      - MAILGUN_SMTP_AUTHENTICATION=plain
+      - MAILGUN_SMTP_DOMAIN=billymartinplayersleague.com
+      - MAILGUN_SMTP_PORT=587
+      - MAILGUN_SMTP_USERNAME=${MAILGUN_SMTP_USERNAME}
+      - MAILGUN_SMTP_PASSWORD=${MAILGUN_SMTP_PASSWORD}
+      - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
+      - RAILS_SERVE_STATIC_FILES=true
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+    depends_on:
+      - players-db-qa
+    ports:
+      - "3001:3000"  # QA on different port
+    networks:
+      - qa
+      - web
+    restart: unless-stopped
+
+  # Players Database (QA)
+  players-db-qa:
+    image: postgres:16
+    container_name: players-db-qa
+    environment:
+      - POSTGRES_DB=players_production
+      - POSTGRES_USER=postgres
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - players-db-data-qa:/var/lib/postgresql/data
+    networks:
+      - qa
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Players Scheduler (QA)
+  players-scheduler-qa:
+    image: ghcr.io/jamiepinkham/players:main  # Same as players-web-qa
+    container_name: players-scheduler-qa
+    environment:
+      - APP_HOST=
+      - ASSET_HOST=
+      - DATABASE_HOST=players-db-qa
+      - DATABASE_NAME=players_production
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-}
+      - DISABLE_FORCE_SSL=true
+      - DISABLE_HOST_CHECK=true
+      - MAILER_FROM=no-reply@billymartinplayersleague.com
+      - MAILGUN_SMTP_ADDRESS=smtp.mailgun.org
+      - MAILGUN_SMTP_AUTHENTICATION=plain
+      - MAILGUN_SMTP_DOMAIN=billymartinplayersleague.com
+      - MAILGUN_SMTP_PORT=587
+      - MAILGUN_SMTP_USERNAME=${MAILGUN_SMTP_USERNAME}
+      - MAILGUN_SMTP_PASSWORD=${MAILGUN_SMTP_PASSWORD}
+      - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
+      - RAILS_SERVE_STATIC_FILES=true
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+    depends_on:
+      - players-db-qa
+    command: bundle exec whenever --update-crontab && cron -f
+    networks:
+      - qa
+    restart: unless-stopped
+
+  # Ghost Blog Database (QA)
+  ghost-db-qa:
+    image: mysql:8.0
+    container_name: ghost-db-qa
+    environment:
+      - MYSQL_ROOT_PASSWORD=${GHOST_DB_PASSWORD}
+      - MYSQL_DATABASE=ghost
+      - MYSQL_USER=ghost
+      - MYSQL_PASSWORD=${GHOST_DB_PASSWORD}
+    volumes:
+      - ghost-db-data-qa:/var/lib/mysql
+    networks:
+      - qa
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ghost Blog (QA)
+  ghost-qa:
+    image: ghost:latest
+    container_name: ghost-qa
+    environment:
+      - url=https://qa.billymartinplayersleague.com
+      - NODE_ENV=production
+      - database__client=mysql
+      - database__connection__host=ghost-db-qa
+      - database__connection__user=ghost
+      - database__connection__password=${GHOST_DB_PASSWORD}
+      - database__connection__database=ghost
+    depends_on:
+      - ghost-db-qa
+    ports:
+      - "2369:2368"  # QA on different port
+    volumes:
+      - ghost-content-qa:/var/lib/ghost/content
+    networks:
+      - qa
+      - web
+    restart: unless-stopped
+
+networks:
+  qa:
+    name: players_qa
+  web:
+    external: true
+    name: web
+
+volumes:
+  players-db-data-qa:
+  ghost-db-data-qa:
+  ghost-content-qa:
