@@ -1,6 +1,6 @@
 #!/bin/bash
 # Update Caddy configuration on fenway
-# Usage: ssh fenway 'bash -s' < scripts/update-caddy.sh
+# Usage: ssh ortiz@fenway 'bash -s' < scripts/update-caddy.sh
 
 set -e
 
