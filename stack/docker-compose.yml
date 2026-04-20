@@ -81,7 +81,7 @@ services:
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
     depends_on:
       - players-db
-    command: bundle exec whenever --update-crontab && cron -f
+    command: supercronic /app/config/crontab
     networks:
       - default
     restart: unless-stopped
