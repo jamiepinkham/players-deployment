@@ -1,223 +1,250 @@
 # Rollback Procedures
 
-This guide covers how to rollback the fenway stack to a previous state.
+How to rollback the BMPL stack to a previous state.
 
-## Quick Rollback (Image-Based)
+## Application Rollback (Most Common)
 
-If you need to rollback to a previous version of the Players app:
+Rollback to a previous version of the Rails application.
 
-### 1. Find Previous Image Tag
+### Via Portainer (Recommended)
 
-```bash
-# List available tags
-gh api repos/jamiepinkham/players/tags --paginate --jq '.[].name'
+1. **Stacks → bmpl → Editor**
+2. Find the image line:
+   ```yaml
+   players-web:
+     image: ghcr.io/jamiepinkham/players:main
+   ```
+3. Change `main` to a specific tag or commit SHA:
+   ```yaml
+   image: ghcr.io/jamiepinkham/players:v1.2.3
+   # or
+   image: ghcr.io/jamiepinkham/players:sha-9332ec2b
+   ```
+4. Do the same for `players-sidekiq` and `players-scheduler`
+5. Check **Re-pull images and redeploy**
+6. Click **Update the stack**
 
-# Or check GitHub directly
-# https://github.com/jamiepinkham/players/tags
-```
-
-### 2. Update docker-compose.yml
-
-Edit `stack/docker-compose.yml` and change the image tags:
-
-```yaml
-players-web:
-  image: ghcr.io/jamiepinkham/players:TAG_NAME  # Change to specific tag
-
-players-scheduler:
-  image: ghcr.io/jamiepinkham/players:TAG_NAME  # Same tag
-```
-
-### 3. Redeploy
+### Via SSH
 
 ```bash
-cd ~/players-deployment/stack
-docker-compose pull
-docker-compose up -d
+ssh ortiz@fenway
+
+# Pull specific version
+docker pull ghcr.io/jamiepinkham/players:TAG_NAME
+
+# Tag it as the version we want to run
+docker tag ghcr.io/jamiepinkham/players:TAG_NAME ghcr.io/jamiepinkham/players:main
+
+# Restart services
+docker restart players-web players-sidekiq players-scheduler
 ```
+
+### Finding Previous Versions
+
+**GitHub Tags:**
+```bash
+gh api repos/jamiepinkham/players/tags --jq '.[].name' | head -10
+```
+
+**Or browse:** https://github.com/jamiepinkham/players/tags
+
+**GitHub Container Registry:**
+https://github.com/jamiepinkham/players/pkgs/container/players
 
 ## Database Rollback
 
-If you need to rollback a database migration:
+### Rollback Migrations
 
-### Players Database
+If a migration caused issues:
 
 ```bash
-# SSH to fenway
 ssh ortiz@fenway
 
 # Rollback last migration
-docker exec -it players-players-1 bundle exec rails db:rollback
+docker exec players-web bundle exec rails db:rollback
 
 # Rollback multiple migrations
-docker exec -it players-players-1 bundle exec rails db:rollback STEP=3
+docker exec players-web bundle exec rails db:rollback STEP=3
 
-# Rollback to specific version
-docker exec -it players-players-1 bundle exec rails db:migrate:down VERSION=20260419123456
+# Check migration status
+docker exec players-web bundle exec rails db:migrate:status
 ```
 
-### Ghost Database
+### Restore from Backup
 
-Ghost doesn't support rollback. You'll need to restore from backup.
-
-## Full Stack Rollback from Backup
-
-### 1. Stop Running Stack
+If you need to restore the entire database:
 
 ```bash
-cd ~/players-deployment/stack
-docker-compose down
+ssh ortiz@fenway
+
+# List available backups
+ls -lh /tmp/*.sql
+
+# Stop services to prevent connections
+docker stop players-web players-sidekiq players-scheduler
+
+# Restore database
+docker exec -i players-db psql -U postgres players_production < /tmp/players_backup_YYYYMMDD.sql
+
+# Restart services
+docker start players-web players-sidekiq players-scheduler
+
+# Verify
+docker exec players-db psql -U postgres players_production -c "SELECT COUNT(*) FROM users;"
 ```
 
-### 2. Restore Database Backups
+## QA Rollback
 
-#### Players Database
+Rollback QA to a different branch:
 
+**Via Portainer:**
+1. Stacks → bmpl → Editor
+2. Environment variables → Find `GIT_REF`
+3. Change to previous branch/tag
+4. Update the stack
+
+**Via SSH:**
 ```bash
-# Copy backup to server
-scp players_backup_TIMESTAMP.sql ortiz@fenway:~/
-
-# Restore
-docker-compose up -d players-db
-docker exec -i players-db-1 psql -U postgres players_production < ~/players_backup_TIMESTAMP.sql
+docker pull ghcr.io/jamiepinkham/players:BRANCH_NAME
+docker tag ghcr.io/jamiepinkham/players:BRANCH_NAME ghcr.io/jamiepinkham/players:GIT_REF_VALUE
+docker restart players-web-qa players-sidekiq-qa players-scheduler-qa
 ```
 
-#### Ghost Database
+## Ghost Rollback
+
+Rollback Ghost to previous version:
+
+**Via Portainer:**
+1. Stacks → bmpl → Editor
+2. Find Ghost service:
+   ```yaml
+   ghost:
+     image: ghost:latest
+   ```
+3. Change to specific version:
+   ```yaml
+   ghost:
+     image: ghost:5.87.0
+   ```
+4. Update the stack
+
+**Ghost versions:** https://hub.docker.com/_/ghost/tags
+
+## Full Stack Rollback
+
+If everything is broken and you need to rollback the entire stack:
+
+### Option 1: Revert to Previous Compose File
+
+If you have the previous `docker-compose.consolidated.yml`:
+
+1. Portainer → bmpl → Editor
+2. Paste previous compose file
+3. Update the stack
+
+### Option 2: Restore from Git
 
 ```bash
-# Copy backup to server
-scp ghost_backup_TIMESTAMP.sql ortiz@fenway:~/
+# On your local machine
+cd ~/dev/players-deployment
+git log --oneline  # Find commit before the problematic change
+git show COMMIT_HASH:stack/docker-compose.consolidated.yml
 
-# Restore
-docker-compose up -d ghost-db
-docker exec -i ghost-db mysql -u ghost -p ghost < ~/ghost_backup_TIMESTAMP.sql
+# Copy that version to Portainer
 ```
 
-### 3. Restore Volume Data (if needed)
+## Emergency Rollback (Site Down)
 
-If you have volume backups:
+If the site is completely down:
 
-```bash
-# Stop everything
-docker-compose down
-
-# Remove volumes
-docker volume rm players_default_players-db-data
-docker volume rm players_default_ghost-db-data
-docker volume rm players_default_ghost-content
-
-# Restore from tar backups
-docker run --rm -v players_default_players-db-data:/data -v ~/backups:/backup alpine sh -c "cd /data && tar xzf /backup/players-db-data.tar.gz"
-docker run --rm -v players_default_ghost-db-data:/data -v ~/backups:/backup alpine sh -c "cd /data && tar xzf /backup/ghost-db-data.tar.gz"
-docker run --rm -v players_default_ghost-content:/data -v ~/backups:/backup alpine sh -c "cd /data && tar xzf /backup/ghost-content.tar.gz"
-
-# Start stack
-docker-compose up -d
-```
-
-### 4. Verify
+### 1. Check What's Running
 
 ```bash
-# Check containers are running
+ssh ortiz@fenway
 docker ps
-
-# Check logs for errors
-docker-compose logs -f
-
-# Test applications
-curl http://localhost:3000
+docker logs players-web --tail 50
+docker logs ghost --tail 50
 ```
 
-## Emergency Stop
+### 2. Quick Restart
 
-If something goes wrong and you need to stop everything immediately:
+Often just restarting fixes it:
 
 ```bash
-cd ~/players-deployment/stack
-docker-compose down
+docker restart players-web
+docker restart ghost
+
+# Or restart everything:
+docker restart $(docker ps -q)
 ```
 
-This stops all containers but preserves volumes (data is safe).
+### 3. Rollback Application
 
-## Rollback Deployment Configuration
+Use the Application Rollback steps above to go back to `main` or a known-good tag.
 
-If you need to revert changes to docker-compose.yml or environment variables:
+### 4. Check Database
 
 ```bash
-cd ~/players-deployment
-git log  # Find previous commit
-git checkout <commit-hash> stack/docker-compose.yml
-docker-compose up -d
+# Verify database is accessible
+docker exec players-db psql -U postgres players_production -c "SELECT 1;"
+
+# Check for locks
+docker exec players-db psql -U postgres players_production -c "SELECT * FROM pg_locks WHERE NOT granted;"
 ```
 
-## Common Rollback Scenarios
+## Rollback Checklist
 
-### After Failed Migration
+After any rollback:
 
-```bash
-# 1. Stop the web container
-docker stop players-players-1
-
-# 2. Rollback migration
-docker exec -it players-players-1 bundle exec rails db:rollback
-
-# 3. Deploy previous code version
-# (see Image-Based Rollback above)
-
-# 4. Start container
-docker start players-players-1
-```
-
-### After Config Change Breaks Site
-
-```bash
-# 1. Revert .env changes
-cd ~/players-deployment/stack
-git checkout HEAD -- .env
-
-# 2. Or edit manually
-vim .env
-
-# 3. Recreate containers
-docker-compose up -d --force-recreate
-```
-
-### After Ghost Update Breaks Blog
-
-```bash
-# 1. Pin to previous version
-vim stack/docker-compose.yml
-# Change ghost:latest to ghost:5.x.x (specific version)
-
-# 2. Redeploy
-docker-compose pull ghost
-docker-compose up -d ghost
-```
+- [ ] Site is accessible
+- [ ] Users can log in
+- [ ] Database queries work
+- [ ] No errors in logs
+- [ ] Background jobs processing
+- [ ] Ghost blog accessible (if rolled back)
+- [ ] Document what went wrong
+- [ ] Consider hotfix vs full rollback
 
 ## Prevention
 
-### Pin Image Versions
+To make rollbacks easier:
 
-Instead of using `:latest` or `:main`, pin to specific versions:
+1. **Always backup before major changes**
+   ```bash
+   docker exec players-db pg_dumpall -U postgres > /tmp/pre_deploy_$(date +%Y%m%d).sql
+   ```
 
-```yaml
-players-web:
-  image: ghcr.io/jamiepinkham/players:v1.2.3
+2. **Use git tags for releases**
+   ```bash
+   git tag v1.2.3
+   git push origin v1.2.3
+   ```
 
-ghost:
-  image: ghost:5.96.0
-```
+3. **Test in QA first**
+   - Deploy to QA
+   - Test thoroughly
+   - Then deploy to production
 
-### Backup Before Changes
+4. **Keep previous backups**
+   ```bash
+   # Don't delete old backups immediately
+   ls -lt /tmp/*.sql | head -10
+   ```
 
-Always backup before making changes:
+## Recovery Time Objectives
 
-```bash
-# Backup databases
-docker exec players-db-1 pg_dump -U postgres players_production > backup_$(date +%Y%m%d_%H%M%S).sql
-docker exec ghost-db mysqldump -u ghost -p ghost > ghost_backup_$(date +%Y%m%d_%H%M%S).sql
+Expected recovery times:
 
-# Tag current state in git
-git tag -a "pre-deploy-$(date +%Y%m%d-%H%M%S)" -m "Before deployment"
-git push --tags
-```
+| Rollback Type | Expected Time |
+|--------------|---------------|
+| Application version | 2-5 minutes |
+| Database migration | 5-10 minutes |
+| Database restore | 10-20 minutes |
+| Full stack rollback | 5-10 minutes |
+
+## Support
+
+If rollback doesn't work:
+- Check `docs/DEPLOYMENT.md` for troubleshooting
+- Review logs: `docker logs <container> --tail 100`
+- Verify backups exist: `ls -lh /tmp/*.sql`

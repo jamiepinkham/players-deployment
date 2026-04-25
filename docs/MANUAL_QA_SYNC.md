@@ -2,49 +2,38 @@
 
 Sync production data to QA when needed for testing.
 
-## Quick Sync
+## Setup
+
+The sync script needs to be copied to fenway (this repo stays local).
+
+**One-time setup:**
 
 ```bash
-ssh ortiz@fenway
-~/players-deployment/scripts/sync-prod-to-qa.sh
+# Copy the script to fenway
+scp scripts/sync-prod-to-qa.sh ortiz@fenway:/tmp/sync-prod-to-qa.sh
+ssh ortiz@fenway chmod +x /tmp/sync-prod-to-qa.sh
 ```
 
-That's it! The script:
+## Usage
+
+```bash
+ssh ortiz@fenway /tmp/sync-prod-to-qa.sh
+```
+
+The script:
 1. Dumps production database
 2. Stops QA containers
 3. Restores to QA database
 4. Restarts QA containers
 5. Runs any pending migrations
+6. Populates player stats cache (prevents "stats not found" on first page load)
 
 ## When to Sync
 
-Run manual sync:
 - ✅ Before testing a new feature
 - ✅ After production data changes significantly
 - ✅ When QA data gets messy from testing
 - ✅ Weekly or as needed
-
-## First Time Setup
-
-```bash
-# Clone deployment repo on fenway
-ssh ortiz@fenway
-cd ~
-git clone https://github.com/jamiepinkham/players-deployment.git
-```
-
-That's all - the script is already executable.
-
-## Usage
-
-```bash
-# Basic sync
-ssh ortiz@fenway
-~/players-deployment/scripts/sync-prod-to-qa.sh
-
-# Or one-liner from local
-ssh ortiz@fenway ~/players-deployment/scripts/sync-prod-to-qa.sh
-```
 
 ## What Gets Synced
 
@@ -60,6 +49,7 @@ QA will have:
 - Fresh production data
 - Latest schema from production
 - Any new migrations applied
+- Pre-populated stats cache (no waiting for background jobs)
 
 Test your features with realistic data!
 

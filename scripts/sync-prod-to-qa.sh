@@ -25,12 +25,12 @@ docker stop players-web-qa players-scheduler-qa 2>/dev/null || true
 
 # 3. Drop and recreate QA database
 echo "Resetting QA database..."
-docker exec players-db-qa psql -U postgres -c "DROP DATABASE IF EXISTS players_production;"
-docker exec players-db-qa psql -U postgres -c "CREATE DATABASE players_production;"
+docker exec players-db-qa psql -U postgres -c "DROP DATABASE IF EXISTS players_qa;"
+docker exec players-db-qa psql -U postgres -c "CREATE DATABASE players_qa;"
 
 # 4. Restore to QA
 echo "Restoring to QA database..."
-docker exec -i players-db-qa psql -U postgres players_production < "$DUMP_FILE"
+docker exec -i players-db-qa psql -U postgres players_qa < "$DUMP_FILE"
 
 # 5. Restart QA services
 echo "Starting QA services..."
@@ -44,5 +44,9 @@ echo "$(date): Sync complete! QA database now matches production."
 # Optional: Run migrations in case QA is testing newer code
 echo "Running any pending migrations on QA..."
 docker exec players-web-qa bundle exec rails db:migrate 2>/dev/null || echo "Note: Migrations may have failed (expected if QA is on same version as prod)"
+
+# 7. Populate player stats cache
+echo "Populating player stats cache..."
+docker exec players-web-qa bundle exec rails stats:populate || echo "Note: Stats population may have failed"
 
 echo "✅ QA environment ready for testing"
