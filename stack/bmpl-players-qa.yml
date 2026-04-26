@@ -14,7 +14,6 @@
 #
 # Features:
 # - RAILS_ENV=staging (emails logged, not sent)
-# - GraphiQL available at /graphiql (DISABLED - gem not in Docker image)
 # - Debug logging enabled
 # - Full error pages
 # - Configurable Git branch via GIT_REF env var

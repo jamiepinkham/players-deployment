@@ -117,7 +117,6 @@ bin/rails server                      # Start Rails
 
 **Special Features:**
 - Uses `RAILS_ENV=staging` for email interceptor (logs emails instead of sending)
-- GraphiQL available at `/graphiql` for GraphQL testing
 - Can deploy from feature branches via `GIT_REF` environment variable
 - Runs cache warmup script on startup
 - Full Sidekiq support (unlike production)
