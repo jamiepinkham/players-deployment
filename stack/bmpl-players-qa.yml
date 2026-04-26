@@ -32,7 +32,7 @@ services:
   players-web-qa:
     image: ghcr.io/jamiepinkham/players:${GIT_REF:-main}
     container_name: players-web-qa
-    command: sh -c "yarn install && yarn build && yarn build:css && bundle exec rails assets:precompile && bin/warmup-cache && bin/rails server -b 0.0.0.0"
+    command: sh -c "yarn install && yarn build && yarn build:css && RAILS_ENV=production bundle exec rails assets:precompile && bin/warmup-cache && bin/rails server -b 0.0.0.0"
     environment:
       - APP_HOST=
       - ASSET_HOST=
