@@ -1,0 +1,192 @@
+# Billy Martin Players League - QA/Staging Stack
+# QA environment for testing new features before production
+#
+# Services:
+# - players-web-qa: Rails web server (staging environment)
+# - players-sidekiq-qa: Background job processor
+# - players-scheduler-qa: Cron job scheduler
+# - players-db-qa: PostgreSQL database
+# - players-redis-qa: Redis cache
+#
+# Networks:
+# - bmpl-qa: Internal network for database/redis communication
+# - web: Shared network for Caddy reverse proxy (external)
+#
+# Features:
+# - RAILS_ENV=staging (emails logged, not sent)
+# - GraphiQL available at /graphiql (DISABLED - gem not in Docker image)
+# - Debug logging enabled
+# - Full error pages
+# - Configurable Git branch via GIT_REF env var
+#
+# Prerequisites:
+# - Infrastructure stack must be running (Caddy needs to proxy to players-web-qa)
+# - 'web' network must exist
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Rails Web Server (Staging)
+  # =============================================================================
+  players-web-qa:
+    image: ghcr.io/jamiepinkham/players:${GIT_REF:-main}
+    container_name: players-web-qa
+    command: sh -c "yarn install && yarn build && yarn build:css && bundle exec rails assets:precompile && bin/warmup-cache && bin/rails server -b 0.0.0.0"
+    environment:
+      - APP_HOST=
+      - ASSET_HOST=
+      - DATABASE_HOST=players-db-qa
+      - DATABASE_NAME=${DATABASE_NAME_QA:-bmpl-qa}
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD_QA:-}
+      - DISABLE_FORCE_SSL=true
+      - DISABLE_HOST_CHECK=true
+      - MAILER_FROM=no-reply@billymartinplayersleague.com
+      - MAILGUN_SMTP_ADDRESS=smtp.mailgun.org
+      - MAILGUN_SMTP_AUTHENTICATION=plain
+      - MAILGUN_SMTP_DOMAIN=billymartinplayersleague.com
+      - MAILGUN_SMTP_PORT=587
+      - MAILGUN_SMTP_USERNAME=${MAILGUN_SMTP_USERNAME}
+      - MAILGUN_SMTP_PASSWORD=${MAILGUN_SMTP_PASSWORD}
+      - RAILS_ENV=staging
+      - RAILS_LOG_TO_STDOUT=true
+      - RAILS_SERVE_STATIC_FILES=true
+      - REDIS_URL=redis://players-redis-qa:6379/0
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE_QA:-${SECRET_KEY_BASE}}
+    depends_on:
+      players-db-qa:
+        condition: service_healthy
+      players-redis-qa:
+        condition: service_healthy
+    networks:
+      - bmpl-qa
+      - web
+    restart: unless-stopped
+
+  # =============================================================================
+  # PostgreSQL Database (QA)
+  # =============================================================================
+  players-db-qa:
+    image: postgres:16
+    container_name: players-db-qa
+    environment:
+      - POSTGRES_DB=${DATABASE_NAME_QA:-bmpl-qa}
+      - POSTGRES_USER=postgres
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - players_db_data_qa:/var/lib/postgresql/data
+    networks:
+      - bmpl-qa
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =============================================================================
+  # Redis Cache (QA)
+  # =============================================================================
+  players-redis-qa:
+    image: redis:7-alpine
+    container_name: players-redis-qa
+    networks:
+      - bmpl-qa
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # =============================================================================
+  # Sidekiq Background Jobs (QA)
+  # =============================================================================
+  players-sidekiq-qa:
+    image: ghcr.io/jamiepinkham/players:${GIT_REF:-main}
+    container_name: players-sidekiq-qa
+    environment:
+      - APP_HOST=
+      - ASSET_HOST=
+      - DATABASE_HOST=players-db-qa
+      - DATABASE_NAME=${DATABASE_NAME_QA:-bmpl-qa}
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD_QA:-}
+      - DISABLE_FORCE_SSL=true
+      - DISABLE_HOST_CHECK=true
+      - MAILER_FROM=no-reply@billymartinplayersleague.com
+      - MAILGUN_SMTP_ADDRESS=smtp.mailgun.org
+      - MAILGUN_SMTP_AUTHENTICATION=plain
+      - MAILGUN_SMTP_DOMAIN=billymartinplayersleague.com
+      - MAILGUN_SMTP_PORT=587
+      - MAILGUN_SMTP_USERNAME=${MAILGUN_SMTP_USERNAME}
+      - MAILGUN_SMTP_PASSWORD=${MAILGUN_SMTP_PASSWORD}
+      - RAILS_ENV=staging
+      - RAILS_LOG_TO_STDOUT=true
+      - REDIS_URL=redis://players-redis-qa:6379/0
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE_QA:-${SECRET_KEY_BASE}}
+    depends_on:
+      players-db-qa:
+        condition: service_healthy
+      players-redis-qa:
+        condition: service_healthy
+    command: bundle exec sidekiq
+    networks:
+      - bmpl-qa
+    restart: unless-stopped
+
+  # =============================================================================
+  # Cron Scheduler (QA)
+  # =============================================================================
+  players-scheduler-qa:
+    image: ghcr.io/jamiepinkham/players:${GIT_REF:-main}
+    container_name: players-scheduler-qa
+    environment:
+      - APP_HOST=
+      - ASSET_HOST=
+      - DATABASE_HOST=players-db-qa
+      - DATABASE_NAME=${DATABASE_NAME_QA:-bmpl-qa}
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD_QA:-}
+      - DISABLE_FORCE_SSL=true
+      - DISABLE_HOST_CHECK=true
+      - MAILER_FROM=no-reply@billymartinplayersleague.com
+      - MAILGUN_SMTP_ADDRESS=smtp.mailgun.org
+      - MAILGUN_SMTP_AUTHENTICATION=plain
+      - MAILGUN_SMTP_DOMAIN=billymartinplayersleague.com
+      - MAILGUN_SMTP_PORT=587
+      - MAILGUN_SMTP_USERNAME=${MAILGUN_SMTP_USERNAME}
+      - MAILGUN_SMTP_PASSWORD=${MAILGUN_SMTP_PASSWORD}
+      - RAILS_ENV=staging
+      - RAILS_LOG_TO_STDOUT=true
+      - RAILS_SERVE_STATIC_FILES=true
+      - REDIS_URL=redis://players-redis-qa:6379/0
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE_QA:-${SECRET_KEY_BASE}}
+    depends_on:
+      players-db-qa:
+        condition: service_healthy
+      players-redis-qa:
+        condition: service_healthy
+    command: supercronic /app/config/crontab
+    networks:
+      - bmpl-qa
+    restart: unless-stopped
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  bmpl-qa:
+    external: true
+    name: bmpl-qa
+  web:
+    external: true
+    name: web
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  players_db_data_qa:
+    name: players_db_data_qa
