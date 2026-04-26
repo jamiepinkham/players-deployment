@@ -196,7 +196,7 @@ docker network create bmpl-blog
 ### Edge (.env.edge)
 - `CLOUDFLARE_TUNNEL_TOKEN` - Cloudflare tunnel authentication
 
-### Ghost (.env.ghost)
+### Ghost (.env.blog)
 - `GHOST_DB_PASSWORD` - MySQL password
 - `GHOST_MAIL_USER` - Mailgun SMTP username
 - `GHOST_MAIL_PASSWORD` - Mailgun SMTP password

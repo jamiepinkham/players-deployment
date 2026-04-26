@@ -125,7 +125,7 @@ Each stack has its own `.env` file:
 - **Edge:** `.env.edge`
 - **Production:** `.env.production`
 - **QA:** `.env.qa`
-- **Ghost:** `.env.ghost`
+- **Ghost:** `.env.blog`
 
 When deploying in Portainer, you can either:
 1. **Load from file** - Upload the corresponding `.env` file
@@ -228,5 +228,5 @@ image: ghcr.io/jamiepinkham/players:main  # Instead of feature branch
 - `.env.edge` - Edge stack variables
 - `.env.production` - Production stack variables
 - `.env.qa` - QA stack variables
-- `.env.ghost` - Ghost/blog stack variables
+- `.env.blog` - Ghost/blog stack variables
 - `.env.fenway` - Legacy file (replaced by separate files above)
