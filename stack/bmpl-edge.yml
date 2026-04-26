@@ -1,0 +1,111 @@
+# Billy Martin Players League - Infrastructure Stack
+# Caddy reverse proxy and Cloudflare tunnel
+#
+# This stack provides shared infrastructure for all other stacks:
+# - Caddy: Reverse proxy for players-web, players-web-qa, ghost
+# - Cloudflare Tunnel: Exposes services to the internet
+#
+# Deploy this stack FIRST before deploying application stacks
+#
+# Networks:
+# - web: Shared network for reverse proxy access (external)
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Caddy Reverse Proxy
+  # =============================================================================
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    configs:
+      - source: caddyfile
+        target: /etc/caddy/Caddyfile
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - web
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "caddy", "validate", "--config", "/etc/caddy/Caddyfile"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================================================
+  # Cloudflare Tunnel
+  # =============================================================================
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - web
+    restart: unless-stopped
+    depends_on:
+      - caddy
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  web:
+    external: true
+    name: web
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  caddy_data:
+    name: caddy_data
+
+  caddy_config:
+    name: caddy_config
+
+# =============================================================================
+# CONFIGS - Caddyfile
+# =============================================================================
+configs:
+  caddyfile:
+    content: |
+      # Caddyfile for Cloudflare Tunnel
+      # Routes traffic to players-web, players-web-qa, and ghost containers
+
+      # Rails app (Production)
+      http://players.billymartinplayersleague.com {
+          reverse_proxy players-web:3000 {
+              header_up X-Real-IP {remote_host}
+              header_up X-Forwarded-For {remote_host}
+              header_up X-Forwarded-Proto https
+              header_up Host {host}
+          }
+      }
+
+      # Rails app (QA - for testing branches)
+      http://qa.billymartinplayersleague.com {
+          reverse_proxy players-web-qa:3000 {
+              header_up X-Real-IP {remote_host}
+              header_up X-Forwarded-For {remote_host}
+              header_up X-Forwarded-Proto https
+              header_up Host {host}
+          }
+      }
+
+      # Ghost blog
+      http://billymartinplayersleague.com {
+          reverse_proxy ghost:2368 {
+              header_up X-Real-IP {remote_host}
+              header_up X-Forwarded-For {remote_host}
+              header_up X-Forwarded-Proto https
+              header_up Host {host}
+          }
+      }
