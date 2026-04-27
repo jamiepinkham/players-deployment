@@ -61,9 +61,23 @@ docker exec stats-db psql -U postgres -d players_stats -c "\dt"
 curl http://localhost:3001/api/v1/health
 ```
 
-### 6. Test Stats Fetching
+### 6. Warm the Cache (Optional)
 
-Visit QA or production and view a player's stats. The first request will trigger async fetching from MLB API (~5 seconds), subsequent requests will be instant from cache.
+Trigger a full cache rebuild for all free agents:
+
+```bash
+ssh ortiz@fenway
+
+# Quick fire-and-forget (recommended)
+docker exec players-web bundle exec rake cache:warmup_quick
+
+# Or with progress output
+docker exec players-web bundle exec rake cache:warmup_stats
+```
+
+This will trigger async stats fetches for all free agents. Cache will be populated within a few minutes.
+
+Alternatively, skip this step and let stats rebuild organically as players are viewed.
 
 ## Expected Downtime
 
