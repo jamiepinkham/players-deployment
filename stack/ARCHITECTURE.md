@@ -149,6 +149,12 @@ bin/rails server                      # Start Rails
 - Subsequent requests return cached data instantly
 - Stats persist in database across restarts
 
+**Connection from Rails apps:**
+- Both production and QA connect via `http://stats-api:3001` (on shared `web` network)
+- `STATS_API_URL` environment variable is **not set** in stack files
+- Rails code defaults to `http://stats-api:3001` when env var is missing
+- This smart default matches the deployment architecture automatically
+
 **Notes:**
 - Internal-only (not exposed via Caddy)
 - No authentication (accessible only via Docker network)

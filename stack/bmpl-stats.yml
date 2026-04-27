@@ -64,7 +64,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
-      - stats-db-data:/var/lib/postgresql/data
+      - stats_db_data:/var/lib/postgresql/data
     networks:
       - bmpl-stats
     healthcheck:
@@ -79,7 +79,7 @@ services:
     restart: unless-stopped
     command: redis-server --maxmemory 2gb --maxmemory-policy allkeys-lru
     volumes:
-      - stats-redis-data:/data
+      - stats_redis_data:/data
     networks:
       - bmpl-stats
     healthcheck:
@@ -97,5 +97,7 @@ networks:
     driver: bridge
 
 volumes:
-  stats-db-data:
-  stats-redis-data:
+  stats_db_data:
+    name: stats_db_data
+  stats_redis_data:
+    name: stats_redis_data

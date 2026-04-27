@@ -4,7 +4,7 @@ Infrastructure documentation and stack definitions for the Billy Martin Players 
 
 ## Quick Start
 
-The platform runs on **4 separate Docker Compose stacks** deployed via Portainer on fenway.
+The platform runs on **5 separate Docker Compose stacks** deployed via Portainer on fenway.
 
 **📖 Read the docs:**
 - **[stack/ARCHITECTURE.md](stack/ARCHITECTURE.md)** - Complete architecture reference
@@ -16,11 +16,13 @@ Located in `stack/`:
 - **bmpl-edge.yml** - Caddy reverse proxy + Cloudflare tunnel
 - **bmpl-players-prod.yml** - Production Rails application
 - **bmpl-players-qa.yml** - QA/Staging Rails application
+- **bmpl-stats.yml** - Shared stats API microservice (used by both prod and QA)
 - **bmpl-blog.yml** - Ghost CMS for league website
 
 ## Environment Files
 
 Each stack has a corresponding `.env.*` file (gitignored):
+- `.env.fenway` - Server-level configuration (shared across stacks)
 - `.env.edge` - Cloudflare tunnel token
 - `.env.production` - Production secrets (Rails, DB, Mailgun)
 - `.env.qa` - QA secrets + `GIT_REF` for branch deployment
