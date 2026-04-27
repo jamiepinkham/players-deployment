@@ -4,12 +4,13 @@ This document describes the current production deployment setup for the Billy Ma
 
 ## Architecture Overview
 
-The platform is split into **4 independent Docker Compose stacks**:
+The platform is split into **5 independent Docker Compose stacks**:
 
 1. **bmpl-edge** - Caddy reverse proxy + Cloudflare tunnel
 2. **bmpl-players-prod** - Production Rails application
 3. **bmpl-players-qa** - QA/Staging Rails application
-4. **bmpl-blog** - Ghost CMS for league website
+4. **bmpl-stats** - Shared stats API microservice
+5. **bmpl-blog** - Ghost CMS for league website
 
 ### Why Separate Stacks?
 
@@ -22,9 +23,10 @@ The platform is split into **4 independent Docker Compose stacks**:
 
 All stacks communicate via shared Docker networks:
 
-- **web** - External network connecting Caddy to all web containers
+- **web** - External network connecting Caddy to all web containers and stats-api
 - **bmpl-prod** - Internal network for production database/redis
 - **bmpl-qa** - Internal network for QA database/redis
+- **bmpl-stats** - Internal network for stats service components
 - **bmpl-blog** - Internal network for Ghost database
 
 ```
@@ -33,6 +35,10 @@ Internet → Cloudflare Tunnel → Caddy (web network) → Application container
                         players-web, players-web-qa, ghost
                                   ↓
                         Internal networks for databases
+
+                        players-web ──┐
+                                      ├──→ stats-api (web network) → stats-db/redis
+                        players-web-qa─┘
 ```
 
 ## Asset Compilation Strategy
@@ -121,7 +127,34 @@ bin/rails server                      # Start Rails
 - Runs cache warmup script on startup
 - Full Sidekiq support (unlike production)
 
-### 4. bmpl-blog (Ghost CMS)
+### 4. bmpl-stats (Shared Stats API)
+
+**Services:**
+- `stats-api` - FastAPI web service for player statistics
+- `stats-worker` - Celery background worker for async stats fetching
+- `stats-db` - PostgreSQL database for player stats cache
+- `stats-redis` - Redis for caching and Celery message broker
+
+**Image:** `ghcr.io/jamiepinkham/players-stats:main`
+
+**Database:** `players_stats`
+
+**Networks:** `bmpl-stats` (internal), `web` (external)
+
+**Purpose:** Shared microservice for fetching and caching MLB player statistics. Both production and QA environments connect to this single service, eliminating duplicate stats storage.
+
+**How it works:**
+- Three-tier fallback: Redis cache (fast) → PostgreSQL (medium) → MLB Stats API (slow)
+- Initial request returns empty, triggers async Celery task to fetch from MLB
+- Subsequent requests return cached data instantly
+- Stats persist in database across restarts
+
+**Notes:**
+- Internal-only (not exposed via Caddy)
+- No authentication (accessible only via Docker network)
+- Uses trust authentication for PostgreSQL (no password)
+
+### 5. bmpl-blog (Ghost CMS)
 
 **Services:**
 - `ghost` - Ghost CMS application
@@ -148,7 +181,14 @@ docker network create bmpl-blog
 
 2. Deploy stacks in Portainer in this order:
    - bmpl-edge (must be first)
+   - bmpl-stats (shared service for prod/QA)
    - bmpl-blog, bmpl-players-prod, bmpl-players-qa (any order)
+
+3. After deploying bmpl-stats, run database migration:
+```bash
+ssh ortiz@fenway
+docker exec stats-api alembic upgrade head
+```
 
 ### Updating Production
 
