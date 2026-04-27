@@ -1,0 +1,101 @@
+version: '3.8'
+
+# BMPL Stats Stack
+# Shared stats service for both production and QA environments
+#
+# Services:
+# - stats-api: FastAPI web service
+# - stats-worker: Celery background worker
+# - stats-db: PostgreSQL database for player_stats
+# - stats-redis: Redis for caching and Celery broker
+#
+# Networks:
+# - web: Shared network for prod/QA apps to connect
+# - bmpl-stats: Internal network for service communication
+
+services:
+  stats-api:
+    image: ghcr.io/jamiepinkham/players-stats:main
+    container_name: stats-api
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@stats-db:5432/players_stats
+      - REDIS_URL=redis://stats-redis:6379/0
+      - CELERY_BROKER_URL=redis://stats-redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://stats-redis:6379/0
+      - CACHE_TTL=86400
+    depends_on:
+      - stats-db
+      - stats-redis
+    networks:
+      - web
+      - bmpl-stats
+    ports:
+      - "3001:3001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  stats-worker:
+    image: ghcr.io/jamiepinkham/players-stats:main
+    container_name: stats-worker
+    restart: unless-stopped
+    command: celery -A app.tasks.celery_app worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@stats-db:5432/players_stats
+      - REDIS_URL=redis://stats-redis:6379/0
+      - CELERY_BROKER_URL=redis://stats-redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://stats-redis:6379/0
+    depends_on:
+      - stats-db
+      - stats-redis
+    networks:
+      - bmpl-stats
+
+  stats-db:
+    image: postgres:16-alpine
+    container_name: stats-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=players_stats
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - stats-db-data:/var/lib/postgresql/data
+    networks:
+      - bmpl-stats
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d players_stats"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  stats-redis:
+    image: redis:7-alpine
+    container_name: stats-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 2gb --maxmemory-policy allkeys-lru
+    volumes:
+      - stats-redis-data:/data
+    networks:
+      - bmpl-stats
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+networks:
+  web:
+    external: true
+    name: web
+
+  bmpl-stats:
+    driver: bridge
+
+volumes:
+  stats-db-data:
+  stats-redis-data:
