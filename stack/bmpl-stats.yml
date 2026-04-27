@@ -19,7 +19,7 @@ services:
     container_name: stats-api
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@stats-db:5432/players_stats
+      - DATABASE_URL=postgresql://postgres@stats-db:5432/players_stats
       - REDIS_URL=redis://stats-redis:6379/0
       - CELERY_BROKER_URL=redis://stats-redis:6379/0
       - CELERY_RESULT_BACKEND=redis://stats-redis:6379/0
@@ -45,7 +45,7 @@ services:
     restart: unless-stopped
     command: celery -A app.tasks.celery_app worker --loglevel=info
     environment:
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@stats-db:5432/players_stats
+      - DATABASE_URL=postgresql://postgres@stats-db:5432/players_stats
       - REDIS_URL=redis://stats-redis:6379/0
       - CELERY_BROKER_URL=redis://stats-redis:6379/0
       - CELERY_RESULT_BACKEND=redis://stats-redis:6379/0
@@ -62,7 +62,7 @@ services:
     environment:
       - POSTGRES_DB=players_stats
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
       - stats-db-data:/var/lib/postgresql/data
     networks:
