@@ -45,8 +45,9 @@ services:
       - RAILS_ENV=production
       - RAILS_LOG_TO_STDOUT=true
       - RAILS_SERVE_STATIC_FILES=true
-      - REDIS_URL=redis://players-redis:6379/0
+      - REDIS_URL=${REDIS_URL:-redis://players-redis:6379/0}
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - STATS_API_URL=${STATS_API_URL:-http://stats-api:3001}
     depends_on:
       players-db:
         condition: service_healthy
@@ -132,8 +133,9 @@ services:
       - RAILS_ENV=production
       - RAILS_LOG_TO_STDOUT=true
       - RAILS_SERVE_STATIC_FILES=true
-      - REDIS_URL=redis://players-redis:6379/0
+      - REDIS_URL=${REDIS_URL:-redis://players-redis:6379/0}
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - STATS_API_URL=${STATS_API_URL:-http://stats-api:3001}
     depends_on:
       players-db:
         condition: service_healthy

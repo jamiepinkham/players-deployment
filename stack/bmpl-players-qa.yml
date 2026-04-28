@@ -51,8 +51,9 @@ services:
       - RAILS_ENV=staging
       - RAILS_LOG_TO_STDOUT=true
       - RAILS_SERVE_STATIC_FILES=true
-      - REDIS_URL=redis://players-redis-qa:6379/0
+      - REDIS_URL=${REDIS_URL:-redis://players-redis-qa:6379/0}
       - SECRET_KEY_BASE=${SECRET_KEY_BASE_QA:-${SECRET_KEY_BASE}}
+      - STATS_API_URL=${STATS_API_URL:-http://stats-api:3001}
     depends_on:
       players-db-qa:
         condition: service_healthy
@@ -123,8 +124,9 @@ services:
       - MAILGUN_SMTP_PASSWORD=${MAILGUN_SMTP_PASSWORD}
       - RAILS_ENV=staging
       - RAILS_LOG_TO_STDOUT=true
-      - REDIS_URL=redis://players-redis-qa:6379/0
+      - REDIS_URL=${REDIS_URL:-redis://players-redis-qa:6379/0}
       - SECRET_KEY_BASE=${SECRET_KEY_BASE_QA:-${SECRET_KEY_BASE}}
+      - STATS_API_URL=${STATS_API_URL:-http://stats-api:3001}
     depends_on:
       players-db-qa:
         condition: service_healthy
@@ -162,6 +164,7 @@ services:
       - RAILS_SERVE_STATIC_FILES=true
       - REDIS_URL=redis://players-redis-qa:6379/0
       - SECRET_KEY_BASE=${SECRET_KEY_BASE_QA:-${SECRET_KEY_BASE}}
+      - STATS_API_URL=http://stats-api:3001
     depends_on:
       players-db-qa:
         condition: service_healthy
